@@ -9436,6 +9436,58 @@ var _elm_lang$svg$Svg_Events$onMouseOut = _elm_lang$svg$Svg_Events$simpleOn('mou
 var _elm_lang$svg$Svg_Events$onMouseOver = _elm_lang$svg$Svg_Events$simpleOn('mouseover');
 var _elm_lang$svg$Svg_Events$onMouseUp = _elm_lang$svg$Svg_Events$simpleOn('mouseup');
 
+var _user$project$Rest$neighbors = F2(
+	function (board, hex) {
+		var onBoard = function (hexHash) {
+			return A2(_elm_lang$core$Dict$member, hexHash, board);
+		};
+		var dirs = {
+			ctor: '::',
+			_0: _Voronchuk$hexagons$Hexagons_Hex$NE,
+			_1: {
+				ctor: '::',
+				_0: _Voronchuk$hexagons$Hexagons_Hex$E,
+				_1: {
+					ctor: '::',
+					_0: _Voronchuk$hexagons$Hexagons_Hex$SE,
+					_1: {
+						ctor: '::',
+						_0: _Voronchuk$hexagons$Hexagons_Hex$SW,
+						_1: {
+							ctor: '::',
+							_0: _Voronchuk$hexagons$Hexagons_Hex$W,
+							_1: {
+								ctor: '::',
+								_0: _Voronchuk$hexagons$Hexagons_Hex$NW,
+								_1: {ctor: '[]'}
+							}
+						}
+					}
+				}
+			}
+		};
+		var neighborsHashed = A2(
+			_elm_lang$core$List$map,
+			function (_p0) {
+				return _Voronchuk$hexagons$Hexagons_Map$hashHex(
+					A2(_Voronchuk$hexagons$Hexagons_Hex$neighbor, hex, _p0));
+			},
+			dirs);
+		var neighborsOnBoard = A2(_elm_lang$core$List$filter, onBoard, neighborsHashed);
+		return _elm_lang$core$Set$fromList(neighborsOnBoard);
+	});
+var _user$project$Rest$areNeighbors = F3(
+	function (board, hh1, hh2) {
+		var defaultHex = _Voronchuk$hexagons$Hexagons_Hex$IntCubeHex(
+			{ctor: '_Tuple3', _0: 0, _1: 0, _2: 0});
+		var hex1 = A3(_Voronchuk$hexagons$Hexagons_Map$getHex, defaultHex, board, hh1);
+		var hex2 = A3(_Voronchuk$hexagons$Hexagons_Map$getHex, defaultHex, board, hh2);
+		return A2(
+			_elm_lang$core$Set$member,
+			hh1,
+			A2(_user$project$Rest$neighbors, board, hex2));
+	});
+
 var _user$project$Types$HavannahGame = function (a) {
 	return function (b) {
 		return function (c) {
@@ -9484,6 +9536,441 @@ var _user$project$Types$P1Wins = {ctor: 'P1Wins'};
 var _user$project$Types$Aborted = {ctor: 'Aborted'};
 var _user$project$Types$Started = {ctor: 'Started'};
 var _user$project$Types$NotStarted = {ctor: 'NotStarted'};
+
+var _user$project$State$isDraw = function (model) {
+	var n = _elm_lang$core$Native_Utils.eq(model.boardSize, _user$project$Types$Ten) ? 10 : 8;
+	var totalCells = (((3 * n) * n) - (3 * n)) - 1;
+	return _elm_lang$core$Native_Utils.eq(
+		_elm_lang$core$List$length(model.moves),
+		totalCells);
+};
+var _user$project$State$isBridge = function (model) {
+	var isCorner = function (hexHash) {
+		return A2(_elm_lang$core$Set$member, hexHash, model.corners);
+	};
+	var numCorners = function (_p0) {
+		return _elm_lang$core$Set$size(
+			A2(_elm_lang$core$Set$filter, isCorner, _p0));
+	};
+	var connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? model.p1Connections : model.p2Connections;
+	var numCornersInConnections = A2(
+		_elm_lang$core$List$map,
+		numCorners,
+		_elm_lang$core$Dict$values(connections));
+	return A2(
+		_elm_lang$core$List$any,
+		F2(
+			function (x, y) {
+				return _elm_lang$core$Native_Utils.eq(x, y);
+			})(2),
+		numCornersInConnections);
+};
+var _user$project$State$isFork = function (model) {
+	var onEdge = F2(
+		function (connection, edgeGroup) {
+			return A2(
+				_elm_lang$core$List$any,
+				A2(_elm_lang$core$Basics$flip, _elm_lang$core$Set$member, edgeGroup),
+				_elm_lang$core$Set$toList(connection));
+		});
+	var edgesOn = function (connection) {
+		return _elm_lang$core$List$length(
+			A2(
+				_elm_lang$core$List$filter,
+				onEdge(connection),
+				model.edges));
+	};
+	var connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? model.p1Connections : model.p2Connections;
+	var connectionEdgeCounts = A2(
+		_elm_lang$core$List$map,
+		edgesOn,
+		_elm_lang$core$Dict$values(connections));
+	return A2(
+		_elm_lang$core$List$any,
+		F2(
+			function (x, y) {
+				return _elm_lang$core$Native_Utils.eq(x, y);
+			})(3),
+		connectionEdgeCounts);
+};
+var _user$project$State$isRing = function (model) {
+	var enoughNeighborsForRing = F2(
+		function (_p1, neighbors) {
+			var _p2 = neighbors;
+			if (_p2.ctor === '[]') {
+				return false;
+			} else {
+				if (_p2._1.ctor === '[]') {
+					return false;
+				} else {
+					if (_p2._1._1.ctor === '[]') {
+						return !A3(_user$project$Rest$areNeighbors, model.board, _p2._0, _p2._1._0);
+					} else {
+						return true;
+					}
+				}
+			}
+		});
+	var filterNeighborCountDict = function (ncd) {
+		filterNeighborCountDict:
+		while (true) {
+			var filteredDict = A2(_elm_lang$core$Dict$filter, enoughNeighborsForRing, ncd);
+			var removeBadNeighbor = F2(
+				function (_p3, group) {
+					return A2(
+						_elm_lang$core$List$filter,
+						A2(_elm_lang$core$Basics$flip, _elm_lang$core$Dict$member, filteredDict),
+						group);
+				});
+			var removeBadNeighbors = function (dict) {
+				return A2(_elm_lang$core$Dict$map, removeBadNeighbor, dict);
+			};
+			var origSize = _elm_lang$core$Dict$size(ncd);
+			if (_elm_lang$core$Native_Utils.eq(
+				_elm_lang$core$Dict$size(filteredDict),
+				origSize)) {
+				return ncd;
+			} else {
+				var _v1 = removeBadNeighbors(filteredDict);
+				ncd = _v1;
+				continue filterNeighborCountDict;
+			}
+		}
+	};
+	var neighborCount = F2(
+		function (group, hexHash) {
+			return {
+				ctor: '_Tuple2',
+				_0: hexHash,
+				_1: A2(
+					_elm_lang$core$List$filter,
+					A2(_user$project$Rest$areNeighbors, model.board, hexHash),
+					group)
+			};
+		});
+	var neighborCountDict = function (group) {
+		return _elm_lang$core$Dict$fromList(
+			A2(
+				_elm_lang$core$List$map,
+				neighborCount(group),
+				group));
+	};
+	var enoughForRing = F2(
+		function (_p4, connection) {
+			return _elm_lang$core$Native_Utils.cmp(
+				_elm_lang$core$Set$size(connection),
+				6) > -1;
+		});
+	var connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? model.p1Connections : model.p2Connections;
+	var potentialConnections = A2(_elm_lang$core$Dict$filter, enoughForRing, connections);
+	var neighborCountDicts = function () {
+		var connectionGroupList = A2(
+			_elm_lang$core$List$map,
+			_elm_lang$core$Set$toList,
+			_elm_lang$core$Dict$values(potentialConnections));
+		return A2(_elm_lang$core$List$map, neighborCountDict, connectionGroupList);
+	}();
+	var filteredNeighborCountDicts = A2(
+		_elm_lang$core$List$map,
+		function (_p5) {
+			return _elm_lang$core$Dict$size(
+				filterNeighborCountDict(_p5));
+		},
+		neighborCountDicts);
+	return A2(
+		_elm_lang$core$List$any,
+		F2(
+			function (x, y) {
+				return _elm_lang$core$Native_Utils.cmp(x, y) < 1;
+			})(6),
+		filteredNeighborCountDicts);
+};
+var _user$project$State$isWin = function (model) {
+	return _user$project$State$isBridge(model) || (_user$project$State$isFork(model) || _user$project$State$isRing(model));
+};
+var _user$project$State$updateConnections = F3(
+	function (hex, board, connections) {
+		var ns = A2(_user$project$Rest$neighbors, board, hex);
+		var isNeighbor = function (hexHash) {
+			return A2(_elm_lang$core$Set$member, hexHash, ns);
+		};
+		var hasConnection = F2(
+			function (_p6, hexHashSet) {
+				return A2(
+					_elm_lang$core$List$any,
+					isNeighbor,
+					_elm_lang$core$Set$toList(hexHashSet));
+			});
+		var nowConnectedGroups = A2(_elm_lang$core$Dict$filter, hasConnection, connections);
+		var hashesToRemove = A2(
+			_elm_lang$core$Maybe$withDefault,
+			{ctor: '[]'},
+			_elm_lang$core$List$tail(
+				_elm_lang$core$Dict$keys(nowConnectedGroups)));
+		var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(hex);
+		var newConnectedGroup = A3(
+			_elm_lang$core$List$foldl,
+			_elm_lang$core$Set$union,
+			_elm_lang$core$Set$fromList(
+				{
+					ctor: '::',
+					_0: hash,
+					_1: {ctor: '[]'}
+				}),
+			_elm_lang$core$Dict$values(nowConnectedGroups));
+		var hashToUpdate = A2(
+			_elm_lang$core$Maybe$withDefault,
+			hash,
+			_elm_lang$core$List$head(
+				_elm_lang$core$Dict$keys(nowConnectedGroups)));
+		var updateBeforeDelete = A3(_elm_lang$core$Dict$insert, hashToUpdate, newConnectedGroup, connections);
+		return A3(_elm_lang$core$List$foldl, _elm_lang$core$Dict$remove, updateBeforeDelete, hashesToRemove);
+	});
+var _user$project$State$findCornersAndEdges = F2(
+	function (board, boardSize) {
+		var zEquals = F2(
+			function (v, _p7) {
+				var _p8 = _p7;
+				return _elm_lang$core$Native_Utils.eq(_p8._2, v);
+			});
+		var yEquals = F2(
+			function (v, _p9) {
+				var _p10 = _p9;
+				return _elm_lang$core$Native_Utils.eq(_p10._1, v);
+			});
+		var xEquals = F2(
+			function (v, _p11) {
+				var _p12 = _p11;
+				return _elm_lang$core$Native_Utils.eq(_p12._0, v);
+			});
+		var n = _elm_lang$core$Native_Utils.eq(boardSize, _user$project$Types$Ten) ? 9 : 7;
+		var isEdge = F2(
+			function (_p13, count) {
+				return _elm_lang$core$Native_Utils.eq(count, 4);
+			});
+		var isCorner = F2(
+			function (_p14, count) {
+				return _elm_lang$core$Native_Utils.eq(count, 3);
+			});
+		var neighborCount = function (hex) {
+			return {
+				ctor: '_Tuple2',
+				_0: _Voronchuk$hexagons$Hexagons_Map$hashHex(hex),
+				_1: _elm_lang$core$Set$size(
+					A2(_user$project$Rest$neighbors, board, hex))
+			};
+		};
+		var neighborCounts = function () {
+			var neighborCountsList = A2(
+				_elm_lang$core$List$map,
+				neighborCount,
+				_elm_lang$core$Dict$values(board));
+			return _elm_lang$core$Dict$fromList(neighborCountsList);
+		}();
+		var corners = A2(_elm_lang$core$Dict$filter, isCorner, neighborCounts);
+		var edges = _elm_lang$core$Dict$keys(
+			A2(_elm_lang$core$Dict$filter, isEdge, neighborCounts));
+		var edgeGroups = {
+			ctor: '::',
+			_0: A2(
+				_elm_lang$core$List$filter,
+				xEquals(n),
+				edges),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$core$List$filter,
+					xEquals(0 - n),
+					edges),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$core$List$filter,
+						yEquals(n),
+						edges),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$core$List$filter,
+							yEquals(0 - n),
+							edges),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$core$List$filter,
+								zEquals(n),
+								edges),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$core$List$filter,
+									zEquals(0 - n),
+									edges),
+								_1: {ctor: '[]'}
+							}
+						}
+					}
+				}
+			}
+		};
+		return {
+			ctor: '_Tuple2',
+			_0: _elm_lang$core$Set$fromList(
+				_elm_lang$core$Dict$keys(corners)),
+			_1: A2(_elm_lang$core$List$map, _elm_lang$core$Set$fromList, edgeGroups)
+		};
+	});
+var _user$project$State$makeGameBoard = function (boardSize) {
+	var hexBuild = function (_p15) {
+		var _p16 = _p15;
+		var _p18 = _p16._1;
+		var _p17 = _p16._0;
+		var s = (0 - _p17) - _p18;
+		return {
+			ctor: '_Tuple2',
+			_0: {ctor: '_Tuple3', _0: _p17, _1: _p18, _2: s},
+			_1: _Voronchuk$hexagons$Hexagons_Hex$IntCubeHex(
+				{ctor: '_Tuple3', _0: _p17, _1: _p18, _2: s})
+		};
+	};
+	var mapRadius = _elm_lang$core$Native_Utils.eq(boardSize, _user$project$Types$Ten) ? 9 : 7;
+	var qs = A2(_elm_lang$core$List$range, 0 - mapRadius, mapRadius);
+	var rs = function (q) {
+		var r2 = A2(_elm_lang$core$Basics$min, mapRadius, (0 - q) + mapRadius);
+		var r1 = A2(_elm_lang$core$Basics$max, 0 - mapRadius, (0 - q) - mapRadius);
+		return A2(_elm_lang$core$List$range, r1, r2);
+	};
+	var qrs = A2(
+		_elm_lang$core$List$concatMap,
+		function (q) {
+			return A2(
+				_elm_lang$core$List$map,
+				F2(
+					function (v0, v1) {
+						return {ctor: '_Tuple2', _0: v0, _1: v1};
+					})(q),
+				rs(q));
+		},
+		qs);
+	return _elm_lang$core$Dict$fromList(
+		A2(_elm_lang$core$List$map, hexBuild, qrs));
+};
+var _user$project$State$subscriptions = function (model) {
+	return _elm_lang$core$Platform_Sub$none;
+};
+var _user$project$State$update = F2(
+	function (msg, model) {
+		var _p19 = msg;
+		switch (_p19.ctor) {
+			case 'PlaceCell':
+				var _p20 = _p19._0;
+				var nextTurn = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? _user$project$Types$Player2 : _user$project$Types$Player1;
+				var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(_p20);
+				var newP1Moves = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? A2(_elm_lang$core$Set$insert, hash, model.p1Moves) : model.p1Moves;
+				var newP2Moves = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) ? A2(_elm_lang$core$Set$insert, hash, model.p2Moves) : model.p2Moves;
+				var newMoves = _elm_lang$core$List$reverse(
+					{ctor: '::', _0: hash, _1: model.moves});
+				var draw = _user$project$State$isDraw(
+					_elm_lang$core$Native_Utils.update(
+						model,
+						{moves: newMoves}));
+				var newP1Connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) ? model.p1Connections : (_elm_lang$core$Dict$isEmpty(model.p1Connections) ? A3(
+					_elm_lang$core$Dict$insert,
+					hash,
+					_elm_lang$core$Set$fromList(
+						{
+							ctor: '::',
+							_0: hash,
+							_1: {ctor: '[]'}
+						}),
+					model.p1Connections) : A3(_user$project$State$updateConnections, _p20, model.board, model.p1Connections));
+				var newP2Connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? model.p2Connections : (_elm_lang$core$Dict$isEmpty(model.p2Connections) ? A3(
+					_elm_lang$core$Dict$insert,
+					hash,
+					_elm_lang$core$Set$fromList(
+						{
+							ctor: '::',
+							_0: hash,
+							_1: {ctor: '[]'}
+						}),
+					model.p2Connections) : A3(_user$project$State$updateConnections, _p20, model.board, model.p2Connections));
+				var win = _user$project$State$isWin(
+					_elm_lang$core$Native_Utils.update(
+						model,
+						{p1Connections: newP1Connections, p2Connections: newP2Connections}));
+				var newState = (win && _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1)) ? _user$project$Types$P1Wins : ((win && _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2)) ? _user$project$Types$P2Wins : (draw ? _user$project$Types$Draw : model.gameState));
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{p1Moves: newP1Moves, p2Moves: newP2Moves, turn: nextTurn, moves: newMoves, p1Connections: newP1Connections, p2Connections: newP2Connections, gameState: newState}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'HoverCell':
+				var _p21 = _p19._0;
+				var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(_p21);
+				var newHoverCell = A2(_elm_lang$core$List$member, hash, model.moves) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(_p21);
+				var newModel = _elm_lang$core$Native_Utils.update(
+					model,
+					{hoverCell: newHoverCell});
+				return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{hoverCell: _elm_lang$core$Maybe$Nothing}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+		}
+	});
+var _user$project$State$orientationLayoutFlat = {
+	forward_matrix: {
+		ctor: '_Tuple4',
+		_0: 3.0 / 2.0,
+		_1: 0.0,
+		_2: _elm_lang$core$Basics$sqrt(3.0) / 2.0,
+		_3: _elm_lang$core$Basics$sqrt(3.0)
+	},
+	inverse_matrix: {
+		ctor: '_Tuple4',
+		_0: 2.0 / 3.0,
+		_1: 0.0,
+		_2: -1.0 / 3.0,
+		_3: _elm_lang$core$Basics$sqrt(3.0)
+	},
+	start_angle: 0.0
+};
+var _user$project$State$initModel = function () {
+	var size = _user$project$Types$Ten;
+	var board = _user$project$State$makeGameBoard(size);
+	var _p22 = A2(_user$project$State$findCornersAndEdges, board, size);
+	var corners = _p22._0;
+	var edges = _p22._1;
+	var layout = {
+		orientation: _user$project$State$orientationLayoutFlat,
+		size: {ctor: '_Tuple2', _0: 20.0, _1: 20.0},
+		origin: {ctor: '_Tuple2', _0: 300.0, _1: 340.0}
+	};
+	return {
+		layout: layout,
+		boardSize: size,
+		board: board,
+		corners: corners,
+		edges: edges,
+		p1Connections: _elm_lang$core$Dict$empty,
+		p2Connections: _elm_lang$core$Dict$empty,
+		turn: _user$project$Types$Player1,
+		gameState: _user$project$Types$Started,
+		moves: {ctor: '[]'},
+		p1Moves: _elm_lang$core$Set$empty,
+		p2Moves: _elm_lang$core$Set$empty,
+		hoverCell: _elm_lang$core$Maybe$Nothing,
+		p1Color: 'DodgerBlue',
+		p2Color: 'gray'
+	};
+}();
+var _user$project$State$init = {ctor: '_Tuple2', _0: _user$project$State$initModel, _1: _elm_lang$core$Platform_Cmd$none};
 
 var _user$project$View$cartesianString = function (_p0) {
 	var _p1 = _p0;
@@ -9547,6 +10034,195 @@ var _user$project$View$pointsString = function (_p7) {
 		' ',
 		A2(_elm_lang$core$List$map, _user$project$View$printPoint, _p7));
 };
+var _user$project$View$numberText = F2(
+	function (model, hex) {
+		var edgeLength = _elm_lang$core$Native_Utils.eq(model.boardSize, _user$project$Types$Ten) ? 9 : 7;
+		var _p8 = A2(_Voronchuk$hexagons$Hexagons_Layout$hexToPoint, model.layout, hex);
+		var x = _p8._0;
+		var y = _p8._1;
+		var _p9 = A2(
+			_user$project$View$cartesianHex,
+			model.boardSize,
+			_Voronchuk$hexagons$Hexagons_Map$hashHex(hex));
+		var number = _p9._1;
+		var xOffset = (_elm_lang$core$Native_Utils.cmp(number, edgeLength) > 0) ? 23 : 20;
+		var yOffset = (_elm_lang$core$Native_Utils.cmp(number, edgeLength) > 0) ? 5 : 15;
+		return A2(
+			_elm_lang$svg$Svg$g,
+			{
+				ctor: '::',
+				_0: _elm_lang$svg$Svg_Attributes$class('coordinate'),
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$svg$Svg$text_,
+					{
+						ctor: '::',
+						_0: _elm_lang$svg$Svg_Attributes$stroke('none'),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$svg$Svg_Attributes$fill('black'),
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$svg$Svg_Attributes$x(
+									_elm_lang$core$Basics$toString(x + xOffset)),
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$svg$Svg_Attributes$y(
+										_elm_lang$core$Basics$toString(y + yOffset)),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$svg$Svg_Attributes$textAnchor('start'),
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$svg$Svg$text(
+							_elm_lang$core$Basics$toString(number)),
+						_1: {ctor: '[]'}
+					}),
+				_1: {ctor: '[]'}
+			});
+	});
+var _user$project$View$letterText = F2(
+	function (model, hex) {
+		var edgeLength = _elm_lang$core$Native_Utils.eq(model.boardSize, _user$project$Types$Ten) ? 9 : 7;
+		var _p10 = A2(_Voronchuk$hexagons$Hexagons_Layout$hexToPoint, model.layout, hex);
+		var x = _p10._0;
+		var y = _p10._1;
+		var _p11 = A2(
+			_user$project$View$cartesianHex,
+			model.boardSize,
+			_Voronchuk$hexagons$Hexagons_Map$hashHex(hex));
+		var letter = _p11._0;
+		var xOffset = (_elm_lang$core$Native_Utils.cmp(
+			_elm_lang$core$Char$toCode(letter) - _elm_lang$core$Char$toCode(
+				_elm_lang$core$Native_Utils.chr('A')),
+			edgeLength) > -1) ? 23 : 20;
+		var yOffset = (_elm_lang$core$Native_Utils.cmp(
+			_elm_lang$core$Char$toCode(letter) - _elm_lang$core$Char$toCode(
+				_elm_lang$core$Native_Utils.chr('A')),
+			edgeLength) > -1) ? 5 : 15;
+		return A2(
+			_elm_lang$svg$Svg$g,
+			{
+				ctor: '::',
+				_0: _elm_lang$svg$Svg_Attributes$class('coordinate'),
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$svg$Svg$text_,
+					{
+						ctor: '::',
+						_0: _elm_lang$svg$Svg_Attributes$stroke('none'),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$svg$Svg_Attributes$fill('black'),
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$svg$Svg_Attributes$x(
+									_elm_lang$core$Basics$toString(x - xOffset)),
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$svg$Svg_Attributes$y(
+										_elm_lang$core$Basics$toString(y + yOffset)),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$svg$Svg_Attributes$textAnchor('end'),
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$svg$Svg$text(
+							_elm_lang$core$String$fromChar(letter)),
+						_1: {ctor: '[]'}
+					}),
+				_1: {ctor: '[]'}
+			});
+	});
+var _user$project$View$coordinatesText = function (model) {
+	var defaultHex = _Voronchuk$hexagons$Hexagons_Hex$IntCubeHex(
+		{ctor: '_Tuple3', _0: 0, _1: 0, _2: 0});
+	var size = _elm_lang$core$Native_Utils.eq(model.boardSize, _user$project$Types$Ten) ? 9 : 7;
+	var letterCorner = {ctor: '_Tuple3', _0: 0 - size, _1: size, _2: 0};
+	var isLetterEdge = function (edge) {
+		return A2(
+			_elm_lang$core$List$any,
+			A2(_user$project$Rest$areNeighbors, model.board, letterCorner),
+			_elm_lang$core$Set$toList(edge));
+	};
+	var letterEdges = A2(_elm_lang$core$List$filter, isLetterEdge, model.edges);
+	var numberCorner = {ctor: '_Tuple3', _0: size, _1: 0, _2: 0 - size};
+	var isNumberEdge = function (edge) {
+		return A2(
+			_elm_lang$core$List$any,
+			A2(_user$project$Rest$areNeighbors, model.board, numberCorner),
+			_elm_lang$core$Set$toList(edge));
+	};
+	var numberEdges = A2(_elm_lang$core$List$filter, isNumberEdge, model.edges);
+	var letterHexHash = A2(
+		_elm_lang$core$Basics_ops['++'],
+		{
+			ctor: '::',
+			_0: {ctor: '_Tuple3', _0: 0, _1: size, _2: 0 - size},
+			_1: {
+				ctor: '::',
+				_0: {ctor: '_Tuple3', _0: 0 - size, _1: size, _2: 0},
+				_1: {
+					ctor: '::',
+					_0: {ctor: '_Tuple3', _0: 0 - size, _1: 0, _2: size},
+					_1: {ctor: '[]'}
+				}
+			}
+		},
+		A2(_elm_lang$core$List$concatMap, _elm_lang$core$Set$toList, letterEdges));
+	var letterHex = A2(
+		_elm_lang$core$List$map,
+		A2(_Voronchuk$hexagons$Hexagons_Map$getHex, defaultHex, model.board),
+		letterHexHash);
+	var numberHexHash = A2(
+		_elm_lang$core$Basics_ops['++'],
+		{
+			ctor: '::',
+			_0: {ctor: '_Tuple3', _0: 0, _1: size, _2: 0 - size},
+			_1: {
+				ctor: '::',
+				_0: {ctor: '_Tuple3', _0: size, _1: 0, _2: 0 - size},
+				_1: {
+					ctor: '::',
+					_0: {ctor: '_Tuple3', _0: size, _1: 0 - size, _2: 0},
+					_1: {ctor: '[]'}
+				}
+			}
+		},
+		A2(_elm_lang$core$List$concatMap, _elm_lang$core$Set$toList, numberEdges));
+	var numberHex = A2(
+		_elm_lang$core$List$map,
+		A2(_Voronchuk$hexagons$Hexagons_Map$getHex, defaultHex, model.board),
+		numberHexHash);
+	return A2(
+		_elm_lang$core$Basics_ops['++'],
+		A2(
+			_elm_lang$core$List$map,
+			_user$project$View$letterText(model),
+			letterHex),
+		A2(
+			_elm_lang$core$List$map,
+			_user$project$View$numberText(model),
+			numberHex));
+};
 var _user$project$View$gData = F2(
 	function (model, hex) {
 		var clickHandlers = (!_elm_lang$core$Native_Utils.eq(model.gameState, _user$project$Types$Started)) ? {ctor: '[]'} : {
@@ -9568,21 +10244,20 @@ var _user$project$View$gData = F2(
 			model.hoverCell,
 			_elm_lang$core$Maybe$Just(hex));
 		var fillOpacity = isHover ? '0.5' : '1.0';
-		var strokeOpacity = isHover ? '0.1' : '1.0';
-		var _p8 = A2(_Voronchuk$hexagons$Hexagons_Layout$hexToPoint, model.layout, hex);
-		var centerX = _p8._0;
-		var centerY = _p8._1;
+		var _p12 = A2(_Voronchuk$hexagons$Hexagons_Layout$hexToPoint, model.layout, hex);
+		var centerX = _p12._0;
+		var centerY = _p12._1;
 		var cornerPoints = A2(_Voronchuk$hexagons$Hexagons_Layout$polygonCorners, model.layout, hex);
 		var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(hex);
-		var _p9 = A2(_user$project$View$cartesianHex, model.boardSize, hash);
-		var letter = _p9._0;
-		var number = _p9._1;
-		var fillColor = A2(_elm_lang$core$Set$member, hash, model.p1Moves) ? model.p1Color : (A2(_elm_lang$core$Set$member, hash, model.p2Moves) ? model.p2Color : ((_elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) && isHover) ? model.p1Color : ((_elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) && isHover) ? model.p2Color : 'DodgerBlue')));
+		var _p13 = A2(_user$project$View$cartesianHex, model.boardSize, hash);
+		var letter = _p13._0;
+		var number = _p13._1;
+		var fillColor = A2(_elm_lang$core$Set$member, hash, model.p1Moves) ? model.p1Color : (A2(_elm_lang$core$Set$member, hash, model.p2Moves) ? model.p2Color : ((_elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) && isHover) ? model.p1Color : ((_elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) && isHover) ? model.p2Color : 'Aliceblue')));
 		var isMove = A2(_elm_lang$core$Set$member, hash, model.p1Moves) || A2(_elm_lang$core$Set$member, hash, model.p2Moves);
 		var gClass = function () {
 			var qualifier = function () {
-				var _p10 = model.gameState;
-				if (_p10.ctor === 'Started') {
+				var _p14 = model.gameState;
+				if (_p14.ctor === 'Started') {
 					return isMove ? 'taken' : 'available';
 				} else {
 					return 'no-game-play';
@@ -9616,59 +10291,11 @@ var _user$project$View$gData = F2(
 						_1: {
 							ctor: '::',
 							_0: _elm_lang$svg$Svg_Attributes$fill(fillColor),
-							_1: {
-								ctor: '::',
-								_0: _elm_lang$svg$Svg_Attributes$strokeOpacity(strokeOpacity),
-								_1: {ctor: '[]'}
-							}
+							_1: {ctor: '[]'}
 						}
 					},
 					{ctor: '[]'}),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$svg$Svg$text_,
-						{
-							ctor: '::',
-							_0: _elm_lang$svg$Svg_Attributes$stroke('none'),
-							_1: {
-								ctor: '::',
-								_0: _elm_lang$svg$Svg_Attributes$fill('white'),
-								_1: {
-									ctor: '::',
-									_0: _elm_lang$svg$Svg_Attributes$x(
-										_elm_lang$core$Basics$toString(centerX)),
-									_1: {
-										ctor: '::',
-										_0: _elm_lang$svg$Svg_Attributes$y(
-											_elm_lang$core$Basics$toString(centerY + 5)),
-										_1: {
-											ctor: '::',
-											_0: _elm_lang$svg$Svg_Attributes$textAnchor('middle'),
-											_1: {
-												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$style(
-													{
-														ctor: '::',
-														_0: {ctor: '_Tuple2', _0: 'font-size', _1: '8px'},
-														_1: {ctor: '[]'}
-													}),
-												_1: {ctor: '[]'}
-											}
-										}
-									}
-								}
-							}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$svg$Svg$text(
-								_user$project$View$cartesianString(
-									{ctor: '_Tuple2', _0: letter, _1: number})),
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				}
+				_1: {ctor: '[]'}
 			});
 	});
 var _user$project$View$havannahBoard = function (model) {
@@ -9679,8 +10306,8 @@ var _user$project$View$havannahBoard = function (model) {
 		gHexs);
 };
 var _user$project$View$gameStateText = function (model) {
-	var _p11 = model.gameState;
-	switch (_p11.ctor) {
+	var _p15 = model.gameState;
+	switch (_p15.ctor) {
 		case 'P1Wins':
 			return 'Player 1 wins';
 		case 'P2Wins':
@@ -9694,6 +10321,55 @@ var _user$project$View$gameStateText = function (model) {
 		default:
 			return _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? 'Player 1\'s turn' : 'Player 2\'s turn';
 	}
+};
+var _user$project$View$hoveredText = function (model) {
+	var _p16 = model.hoverCell;
+	if (_p16.ctor === 'Nothing') {
+		return '';
+	} else {
+		return _elm_lang$core$Basics$toString(
+			_Voronchuk$hexagons$Hexagons_Map$hashHex(_p16._0));
+	}
+};
+var _user$project$View$movesList = function (model) {
+	var body = A2(
+		_elm_lang$html$Html$tbody,
+		{ctor: '[]'},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$tr,
+				{ctor: '[]'},
+				{ctor: '[]'}),
+			_1: {ctor: '[]'}
+		});
+	var header = A2(
+		_elm_lang$html$Html$thead,
+		{ctor: '[]'},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$tr,
+				{ctor: '[]'},
+				{ctor: '[]'}),
+			_1: {ctor: '[]'}
+		});
+	return A2(
+		_elm_lang$html$Html$table,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$class('hover'),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: header,
+			_1: {
+				ctor: '::',
+				_0: body,
+				_1: {ctor: '[]'}
+			}
+		});
 };
 var _user$project$View$rootView = function (model) {
 	return A2(
@@ -9721,7 +10397,10 @@ var _user$project$View$rootView = function (model) {
 							_0: _elm_lang$svg$Svg_Attributes$class('havannah-board'),
 							_1: {ctor: '[]'}
 						},
-						_user$project$View$havannahBoard(model)),
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							_user$project$View$havannahBoard(model),
+							_user$project$View$coordinatesText(model))),
 					_1: {ctor: '[]'}
 				}),
 			_1: {
@@ -9730,507 +10409,37 @@ var _user$project$View$rootView = function (model) {
 					_elm_lang$html$Html$div,
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$class('large-2 columns'),
+						_0: _elm_lang$html$Html_Attributes$class('large-4 columns'),
 						_1: {ctor: '[]'}
 					},
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html$text(
-							_user$project$View$gameStateText(model)),
-						_1: {ctor: '[]'}
+						_0: A2(
+							_elm_lang$html$Html$p,
+							{ctor: '[]'},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text(
+									_user$project$View$gameStateText(model)),
+								_1: {ctor: '[]'}
+							}),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$hr,
+								{ctor: '[]'},
+								{ctor: '[]'}),
+							_1: {
+								ctor: '::',
+								_0: _user$project$View$movesList(model),
+								_1: {ctor: '[]'}
+							}
+						}
 					}),
 				_1: {ctor: '[]'}
 			}
 		});
 };
-
-var _user$project$State$isDraw = function (model) {
-	var n = _elm_lang$core$Native_Utils.eq(model.boardSize, _user$project$Types$Ten) ? 10 : 8;
-	var totalCells = (((3 * n) * n) - (3 * n)) - 1;
-	return _elm_lang$core$Native_Utils.eq(
-		_elm_lang$core$List$length(model.moves),
-		totalCells);
-};
-var _user$project$State$isBridge = function (model) {
-	var isCorner = function (hexHash) {
-		return A2(_elm_lang$core$Set$member, hexHash, model.corners);
-	};
-	var numCorners = function (_p0) {
-		return _elm_lang$core$Set$size(
-			A2(_elm_lang$core$Set$filter, isCorner, _p0));
-	};
-	var connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? model.p1Connections : model.p2Connections;
-	var numCornersInConnections = A2(
-		_elm_lang$core$List$map,
-		numCorners,
-		_elm_lang$core$Dict$values(connections));
-	return A2(
-		_elm_lang$core$List$any,
-		F2(
-			function (x, y) {
-				return _elm_lang$core$Native_Utils.eq(x, y);
-			})(2),
-		numCornersInConnections);
-};
-var _user$project$State$isFork = function (model) {
-	var onEdge = F2(
-		function (connection, edgeGroup) {
-			return A2(
-				_elm_lang$core$List$any,
-				A2(_elm_lang$core$Basics$flip, _elm_lang$core$Set$member, edgeGroup),
-				_elm_lang$core$Set$toList(connection));
-		});
-	var edgesOn = function (connection) {
-		return _elm_lang$core$List$length(
-			A2(
-				_elm_lang$core$List$filter,
-				onEdge(connection),
-				model.edges));
-	};
-	var connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? model.p1Connections : model.p2Connections;
-	var connectionEdgeCounts = A2(
-		_elm_lang$core$List$map,
-		edgesOn,
-		_elm_lang$core$Dict$values(connections));
-	return A2(
-		_elm_lang$core$List$any,
-		F2(
-			function (x, y) {
-				return _elm_lang$core$Native_Utils.eq(x, y);
-			})(3),
-		connectionEdgeCounts);
-};
-var _user$project$State$neighbors = F2(
-	function (board, hex) {
-		var onBoard = function (hexHash) {
-			return A2(_elm_lang$core$Dict$member, hexHash, board);
-		};
-		var dirs = {
-			ctor: '::',
-			_0: _Voronchuk$hexagons$Hexagons_Hex$NE,
-			_1: {
-				ctor: '::',
-				_0: _Voronchuk$hexagons$Hexagons_Hex$E,
-				_1: {
-					ctor: '::',
-					_0: _Voronchuk$hexagons$Hexagons_Hex$SE,
-					_1: {
-						ctor: '::',
-						_0: _Voronchuk$hexagons$Hexagons_Hex$SW,
-						_1: {
-							ctor: '::',
-							_0: _Voronchuk$hexagons$Hexagons_Hex$W,
-							_1: {
-								ctor: '::',
-								_0: _Voronchuk$hexagons$Hexagons_Hex$NW,
-								_1: {ctor: '[]'}
-							}
-						}
-					}
-				}
-			}
-		};
-		var neighborsHashed = A2(
-			_elm_lang$core$List$map,
-			function (_p1) {
-				return _Voronchuk$hexagons$Hexagons_Map$hashHex(
-					A2(_Voronchuk$hexagons$Hexagons_Hex$neighbor, hex, _p1));
-			},
-			dirs);
-		var neighborsOnBoard = A2(_elm_lang$core$List$filter, onBoard, neighborsHashed);
-		return _elm_lang$core$Set$fromList(neighborsOnBoard);
-	});
-var _user$project$State$updateConnections = F3(
-	function (hex, board, connections) {
-		var ns = A2(_user$project$State$neighbors, board, hex);
-		var isNeighbor = function (hexHash) {
-			return A2(_elm_lang$core$Set$member, hexHash, ns);
-		};
-		var hasConnection = F2(
-			function (_p2, hexHashSet) {
-				return A2(
-					_elm_lang$core$List$any,
-					isNeighbor,
-					_elm_lang$core$Set$toList(hexHashSet));
-			});
-		var nowConnectedGroups = A2(_elm_lang$core$Dict$filter, hasConnection, connections);
-		var hashesToRemove = A2(
-			_elm_lang$core$Maybe$withDefault,
-			{ctor: '[]'},
-			_elm_lang$core$List$tail(
-				_elm_lang$core$Dict$keys(nowConnectedGroups)));
-		var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(hex);
-		var newConnectedGroup = A3(
-			_elm_lang$core$List$foldl,
-			_elm_lang$core$Set$union,
-			_elm_lang$core$Set$fromList(
-				{
-					ctor: '::',
-					_0: hash,
-					_1: {ctor: '[]'}
-				}),
-			_elm_lang$core$Dict$values(nowConnectedGroups));
-		var hashToUpdate = A2(
-			_elm_lang$core$Maybe$withDefault,
-			hash,
-			_elm_lang$core$List$head(
-				_elm_lang$core$Dict$keys(nowConnectedGroups)));
-		var updateBeforeDelete = A3(_elm_lang$core$Dict$insert, hashToUpdate, newConnectedGroup, connections);
-		return A3(_elm_lang$core$List$foldl, _elm_lang$core$Dict$remove, updateBeforeDelete, hashesToRemove);
-	});
-var _user$project$State$areNeighbors = F3(
-	function (board, hh1, hh2) {
-		var defaultHex = _Voronchuk$hexagons$Hexagons_Hex$IntCubeHex(
-			{ctor: '_Tuple3', _0: 0, _1: 0, _2: 0});
-		var hex1 = A3(_Voronchuk$hexagons$Hexagons_Map$getHex, defaultHex, board, hh1);
-		var hex2 = A3(_Voronchuk$hexagons$Hexagons_Map$getHex, defaultHex, board, hh2);
-		return A2(
-			_elm_lang$core$Set$member,
-			hh1,
-			A2(_user$project$State$neighbors, board, hex2));
-	});
-var _user$project$State$isRing = function (model) {
-	var enoughNeighborsForRing = F2(
-		function (_p3, neighbors) {
-			var _p4 = neighbors;
-			if (_p4.ctor === '[]') {
-				return false;
-			} else {
-				if (_p4._1.ctor === '[]') {
-					return false;
-				} else {
-					if (_p4._1._1.ctor === '[]') {
-						return !A3(_user$project$State$areNeighbors, model.board, _p4._0, _p4._1._0);
-					} else {
-						return true;
-					}
-				}
-			}
-		});
-	var filterNeighborCountDict = function (ncd) {
-		filterNeighborCountDict:
-		while (true) {
-			var filteredDict = A2(_elm_lang$core$Dict$filter, enoughNeighborsForRing, ncd);
-			var removeBadNeighbor = F2(
-				function (_p5, group) {
-					return A2(
-						_elm_lang$core$List$filter,
-						A2(_elm_lang$core$Basics$flip, _elm_lang$core$Dict$member, filteredDict),
-						group);
-				});
-			var removeBadNeighbors = function (dict) {
-				return A2(_elm_lang$core$Dict$map, removeBadNeighbor, dict);
-			};
-			var origSize = _elm_lang$core$Dict$size(ncd);
-			if (_elm_lang$core$Native_Utils.eq(
-				_elm_lang$core$Dict$size(filteredDict),
-				origSize)) {
-				return ncd;
-			} else {
-				var _v1 = removeBadNeighbors(filteredDict);
-				ncd = _v1;
-				continue filterNeighborCountDict;
-			}
-		}
-	};
-	var neighborCount = F2(
-		function (group, hexHash) {
-			return {
-				ctor: '_Tuple2',
-				_0: hexHash,
-				_1: A2(
-					_elm_lang$core$List$filter,
-					A2(_user$project$State$areNeighbors, model.board, hexHash),
-					group)
-			};
-		});
-	var neighborCountDict = function (group) {
-		return _elm_lang$core$Dict$fromList(
-			A2(
-				_elm_lang$core$List$map,
-				neighborCount(group),
-				group));
-	};
-	var enoughForRing = F2(
-		function (_p6, connection) {
-			return _elm_lang$core$Native_Utils.cmp(
-				_elm_lang$core$Set$size(connection),
-				6) > -1;
-		});
-	var connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? model.p1Connections : model.p2Connections;
-	var potentialConnections = A2(_elm_lang$core$Dict$filter, enoughForRing, connections);
-	var neighborCountDicts = function () {
-		var connectionGroupList = A2(
-			_elm_lang$core$List$map,
-			_elm_lang$core$Set$toList,
-			_elm_lang$core$Dict$values(potentialConnections));
-		return A2(_elm_lang$core$List$map, neighborCountDict, connectionGroupList);
-	}();
-	var filteredNeighborCountDicts = A2(
-		_elm_lang$core$List$map,
-		function (_p7) {
-			return _elm_lang$core$Dict$size(
-				filterNeighborCountDict(_p7));
-		},
-		neighborCountDicts);
-	return A2(
-		_elm_lang$core$List$any,
-		F2(
-			function (x, y) {
-				return _elm_lang$core$Native_Utils.cmp(x, y) < 1;
-			})(6),
-		filteredNeighborCountDicts);
-};
-var _user$project$State$isWin = function (model) {
-	return _user$project$State$isBridge(model) || (_user$project$State$isFork(model) || _user$project$State$isRing(model));
-};
-var _user$project$State$findCornersAndEdges = F2(
-	function (board, boardSize) {
-		var zEquals = F2(
-			function (v, _p8) {
-				var _p9 = _p8;
-				return _elm_lang$core$Native_Utils.eq(_p9._2, v);
-			});
-		var yEquals = F2(
-			function (v, _p10) {
-				var _p11 = _p10;
-				return _elm_lang$core$Native_Utils.eq(_p11._1, v);
-			});
-		var xEquals = F2(
-			function (v, _p12) {
-				var _p13 = _p12;
-				return _elm_lang$core$Native_Utils.eq(_p13._0, v);
-			});
-		var n = _elm_lang$core$Native_Utils.eq(boardSize, _user$project$Types$Ten) ? 9 : 7;
-		var isEdge = F2(
-			function (_p14, count) {
-				return _elm_lang$core$Native_Utils.eq(count, 4);
-			});
-		var isCorner = F2(
-			function (_p15, count) {
-				return _elm_lang$core$Native_Utils.eq(count, 3);
-			});
-		var neighborCount = function (hex) {
-			return {
-				ctor: '_Tuple2',
-				_0: _Voronchuk$hexagons$Hexagons_Map$hashHex(hex),
-				_1: _elm_lang$core$Set$size(
-					A2(_user$project$State$neighbors, board, hex))
-			};
-		};
-		var neighborCounts = function () {
-			var neighborCountsList = A2(
-				_elm_lang$core$List$map,
-				neighborCount,
-				_elm_lang$core$Dict$values(board));
-			return _elm_lang$core$Dict$fromList(neighborCountsList);
-		}();
-		var corners = A2(_elm_lang$core$Dict$filter, isCorner, neighborCounts);
-		var edges = _elm_lang$core$Dict$keys(
-			A2(_elm_lang$core$Dict$filter, isEdge, neighborCounts));
-		var edgeGroups = {
-			ctor: '::',
-			_0: A2(
-				_elm_lang$core$List$filter,
-				xEquals(n),
-				edges),
-			_1: {
-				ctor: '::',
-				_0: A2(
-					_elm_lang$core$List$filter,
-					xEquals(0 - n),
-					edges),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$core$List$filter,
-						yEquals(n),
-						edges),
-					_1: {
-						ctor: '::',
-						_0: A2(
-							_elm_lang$core$List$filter,
-							yEquals(0 - n),
-							edges),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$core$List$filter,
-								zEquals(n),
-								edges),
-							_1: {
-								ctor: '::',
-								_0: A2(
-									_elm_lang$core$List$filter,
-									zEquals(0 - n),
-									edges),
-								_1: {ctor: '[]'}
-							}
-						}
-					}
-				}
-			}
-		};
-		var defaultHex = _Voronchuk$hexagons$Hexagons_Hex$IntCubeHex(
-			{ctor: '_Tuple3', _0: 0, _1: 0, _2: 0});
-		return {
-			ctor: '_Tuple2',
-			_0: _elm_lang$core$Set$fromList(
-				_elm_lang$core$Dict$keys(corners)),
-			_1: A2(_elm_lang$core$List$map, _elm_lang$core$Set$fromList, edgeGroups)
-		};
-	});
-var _user$project$State$makeGameBoard = function (boardSize) {
-	var hexBuild = function (_p16) {
-		var _p17 = _p16;
-		var _p19 = _p17._1;
-		var _p18 = _p17._0;
-		var s = (0 - _p18) - _p19;
-		return {
-			ctor: '_Tuple2',
-			_0: {ctor: '_Tuple3', _0: _p18, _1: _p19, _2: s},
-			_1: _Voronchuk$hexagons$Hexagons_Hex$IntCubeHex(
-				{ctor: '_Tuple3', _0: _p18, _1: _p19, _2: s})
-		};
-	};
-	var mapRadius = _elm_lang$core$Native_Utils.eq(boardSize, _user$project$Types$Ten) ? 9 : 7;
-	var qs = A2(_elm_lang$core$List$range, 0 - mapRadius, mapRadius);
-	var rs = function (q) {
-		var r2 = A2(_elm_lang$core$Basics$min, mapRadius, (0 - q) + mapRadius);
-		var r1 = A2(_elm_lang$core$Basics$max, 0 - mapRadius, (0 - q) - mapRadius);
-		return A2(_elm_lang$core$List$range, r1, r2);
-	};
-	var qrs = A2(
-		_elm_lang$core$List$concatMap,
-		function (q) {
-			return A2(
-				_elm_lang$core$List$map,
-				F2(
-					function (v0, v1) {
-						return {ctor: '_Tuple2', _0: v0, _1: v1};
-					})(q),
-				rs(q));
-		},
-		qs);
-	return _elm_lang$core$Dict$fromList(
-		A2(_elm_lang$core$List$map, hexBuild, qrs));
-};
-var _user$project$State$subscriptions = function (model) {
-	return _elm_lang$core$Platform_Sub$none;
-};
-var _user$project$State$update = F2(
-	function (msg, model) {
-		var _p20 = msg;
-		switch (_p20.ctor) {
-			case 'PlaceCell':
-				var _p21 = _p20._0;
-				var nextTurn = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? _user$project$Types$Player2 : _user$project$Types$Player1;
-				var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(_p21);
-				var newP1Moves = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? A2(_elm_lang$core$Set$insert, hash, model.p1Moves) : model.p1Moves;
-				var newP2Moves = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) ? A2(_elm_lang$core$Set$insert, hash, model.p2Moves) : model.p2Moves;
-				var newMoves = _elm_lang$core$List$reverse(
-					{ctor: '::', _0: hash, _1: model.moves});
-				var draw = _user$project$State$isDraw(
-					_elm_lang$core$Native_Utils.update(
-						model,
-						{moves: newMoves}));
-				var newP1Connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) ? model.p1Connections : (_elm_lang$core$Dict$isEmpty(model.p1Connections) ? A3(
-					_elm_lang$core$Dict$insert,
-					hash,
-					_elm_lang$core$Set$fromList(
-						{
-							ctor: '::',
-							_0: hash,
-							_1: {ctor: '[]'}
-						}),
-					model.p1Connections) : A3(_user$project$State$updateConnections, _p21, model.board, model.p1Connections));
-				var newP2Connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? model.p2Connections : (_elm_lang$core$Dict$isEmpty(model.p2Connections) ? A3(
-					_elm_lang$core$Dict$insert,
-					hash,
-					_elm_lang$core$Set$fromList(
-						{
-							ctor: '::',
-							_0: hash,
-							_1: {ctor: '[]'}
-						}),
-					model.p2Connections) : A3(_user$project$State$updateConnections, _p21, model.board, model.p2Connections));
-				var win = _user$project$State$isWin(
-					_elm_lang$core$Native_Utils.update(
-						model,
-						{p1Connections: newP1Connections, p2Connections: newP2Connections}));
-				var newState = (win && _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1)) ? _user$project$Types$P1Wins : ((win && _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2)) ? _user$project$Types$P2Wins : (draw ? _user$project$Types$Draw : model.gameState));
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{p1Moves: newP1Moves, p2Moves: newP2Moves, turn: nextTurn, moves: newMoves, p1Connections: newP1Connections, p2Connections: newP2Connections, gameState: newState}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			case 'HoverCell':
-				var _p22 = _p20._0;
-				var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(_p22);
-				var newHoverCell = A2(_elm_lang$core$List$member, hash, model.moves) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(_p22);
-				var newModel = _elm_lang$core$Native_Utils.update(
-					model,
-					{hoverCell: newHoverCell});
-				return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
-			default:
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{hoverCell: _elm_lang$core$Maybe$Nothing}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-		}
-	});
-var _user$project$State$orientationLayoutFlat = {
-	forward_matrix: {
-		ctor: '_Tuple4',
-		_0: 3.0 / 2.0,
-		_1: 0.0,
-		_2: _elm_lang$core$Basics$sqrt(3.0) / 2.0,
-		_3: _elm_lang$core$Basics$sqrt(3.0)
-	},
-	inverse_matrix: {
-		ctor: '_Tuple4',
-		_0: 2.0 / 3.0,
-		_1: 0.0,
-		_2: -1.0 / 3.0,
-		_3: _elm_lang$core$Basics$sqrt(3.0)
-	},
-	start_angle: 0.0
-};
-var _user$project$State$initModel = function () {
-	var size = _user$project$Types$Ten;
-	var board = _user$project$State$makeGameBoard(size);
-	var _p23 = A2(_user$project$State$findCornersAndEdges, board, size);
-	var corners = _p23._0;
-	var edges = _p23._1;
-	var layout = {
-		orientation: _user$project$State$orientationLayoutFlat,
-		size: {ctor: '_Tuple2', _0: 20.0, _1: 20.0},
-		origin: {ctor: '_Tuple2', _0: 300.0, _1: 340.0}
-	};
-	return {
-		layout: layout,
-		boardSize: size,
-		board: board,
-		corners: corners,
-		edges: edges,
-		p1Connections: _elm_lang$core$Dict$empty,
-		p2Connections: _elm_lang$core$Dict$empty,
-		turn: _user$project$Types$Player1,
-		gameState: _user$project$Types$Started,
-		moves: {ctor: '[]'},
-		p1Moves: _elm_lang$core$Set$empty,
-		p2Moves: _elm_lang$core$Set$empty,
-		hoverCell: _elm_lang$core$Maybe$Nothing,
-		p1Color: 'black',
-		p2Color: 'white'
-	};
-}();
-var _user$project$State$init = {ctor: '_Tuple2', _0: _user$project$State$initModel, _1: _elm_lang$core$Platform_Cmd$none};
 
 var _user$project$HavannahApp$main = _elm_lang$html$Html$program(
 	{init: _user$project$State$init, update: _user$project$State$update, subscriptions: _user$project$State$subscriptions, view: _user$project$View$rootView})();

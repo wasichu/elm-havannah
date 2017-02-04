@@ -21,8 +21,8 @@ import Hexagons.Layout exposing
   )
 import Hexagons.Map as HexMap
 
+import Rest exposing (..)
 import Types exposing (..)
-import View exposing (..)
 
 -- CONSTANTS
 orientationLayoutFlat =
@@ -156,8 +156,8 @@ initModel =
      , p1Moves = Set.empty
      , p2Moves = Set.empty
      , hoverCell = Nothing
-     , p1Color = "black"
-     , p2Color = "white"
+     , p1Color = "DodgerBlue"
+     , p2Color = "gray"
      }
 
 init =
@@ -200,8 +200,6 @@ makeGameBoard boardSize =
 findCornersAndEdges : HexMap.Map -> BoardSize -> ( Set HexMap.Hash, List (Set HexMap.Hash ) )
 findCornersAndEdges board boardSize =
   let
-    defaultHex = IntCubeHex (0, 0, 0)
-
     neighborCount hex =
         ( HexMap.hashHex hex
         , Set.size (neighbors board hex)
@@ -243,21 +241,6 @@ findCornersAndEdges board boardSize =
     ( Set.fromList (Dict.keys corners)
     , List.map Set.fromList edgeGroups
     )
-
-neighbors : HexMap.Map -> Hex -> Set HexMap.Hash
-neighbors board hex =
-  let
-      dirs = [ NE, E, SE, SW, W, NW] 
-
-      neighborsHashed = 
-        List.map (Hex.neighbor hex >> HexMap.hashHex) dirs
-
-      onBoard hexHash = Dict.member hexHash board
-
-      neighborsOnBoard =
-        List.filter onBoard neighborsHashed
-  in
-     Set.fromList neighborsOnBoard
 
 -- updateConnections assumes that the connections map
 -- is non empty
@@ -373,16 +356,6 @@ isRing model =
 
   in
      List.any ((<=) 6) filteredNeighborCountDicts
-
-areNeighbors board hh1 hh2 =
-  let
-      defaultHex = IntCubeHex (0, 0, 0)
-
-      hex1 = HexMap.getHex defaultHex board hh1
-
-      hex2 = HexMap.getHex defaultHex board hh2
-  in
-     Set.member hh1 (neighbors board hex2)
 
 isFork model =
   let
