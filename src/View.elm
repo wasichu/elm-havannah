@@ -41,23 +41,54 @@ movesList model =
       Html.thead 
         []
         [ Html.tr []
-                  [
+                  [ Html.th [] []
+                  , Html.th [] []
+                  , Html.th [] []
                   ]
         ]
 
     body = 
-      Html.tbody
-        []
-        [ Html.tr []
-                  []
+      Html.tbody 
+      [ ]
+      bodyContents
+
+    cartestianMoves =
+      List.map 
+        (cartesianHex model.boardSize >> cartesianString) 
+        model.moves
+
+    bodyContents =
+      List.indexedMap 
+      bodyContent
+      (pairMoves cartestianMoves) 
+
+    pairMoves moveList =
+      case moveList of 
+        p1Move :: p2Move :: rest ->
+          (p1Move, p2Move) :: pairMoves rest
+
+        p1Move :: [] ->
+          if model.gameState == P1Wins then
+            [(p1Move, "1-0")]
+          else
+            [(p1Move, "")]
+
+        [] ->
+          if model.gameState == P2Wins then
+            [("0-1", "")]
+          else
+            []
+
+    bodyContent moveNum (p1Move, p2Move) =
+      Html.tr [] 
+        [ Html.td [] [ Html.text (toString <| moveNum + 1) ]
+        , Html.td [ class "text-center" ] [ Html.text p1Move ]
+        , Html.td [ class "text-center" ] [ Html.text p2Move ]
         ]
                 
   in
-    Html.table 
-      [ class "hover" ]
-      [ header
-      , body
-      ]
+    div [ class "row table-y-scroll" ]
+        [ Html.table [] [ body ] ]
 
 hoveredText model =
   case model.hoverCell of
