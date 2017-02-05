@@ -17,6 +17,8 @@ type HavannahMsg
   | HoverCell Hex
   -- Mouse over a particular cell
   | UnhoverCell 
+  -- NoOp
+  | NoOp
 
 type BoardSize
   = Ten

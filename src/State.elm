@@ -10,9 +10,11 @@ module State exposing (..)
 
 import Debug
 import Dict
+import Dom.Scroll exposing (toBottom)
 import List exposing ((::))
 import Maybe exposing (Maybe(..))
 import Set exposing (Set(..))
+import Task
 
 import Hexagons.Hex as Hex exposing (Hex(..), Direction(..))
 import Hexagons.Layout exposing 
@@ -54,8 +56,7 @@ update msg model =
             else
               model.p2Moves
 
-          newMoves = 
-            hash :: model.moves |> List.reverse
+          newMoves = model.moves ++ [hash]
 
           nextTurn = if model.turn == Player1 then Player2 else Player1
 
@@ -104,7 +105,7 @@ update msg model =
           , p2Connections = newP2Connections
           , gameState = newState
           }
-        , Cmd.none
+        , Task.attempt (\_ -> NoOp) (toBottom "moves-list")
         )
 
     HoverCell hex ->
@@ -126,6 +127,9 @@ update msg model =
 
     UnhoverCell ->
       ( { model | hoverCell = Nothing }, Cmd.none )
+
+    NoOp ->
+      ( model, Cmd.none )
 
 initModel = 
   let 

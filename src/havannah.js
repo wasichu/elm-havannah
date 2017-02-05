@@ -5783,6 +5783,203 @@ var _elm_lang$core$Array$repeat = F2(
 	});
 var _elm_lang$core$Array$Array = {ctor: 'Array'};
 
+var _elm_lang$core$Task$onError = _elm_lang$core$Native_Scheduler.onError;
+var _elm_lang$core$Task$andThen = _elm_lang$core$Native_Scheduler.andThen;
+var _elm_lang$core$Task$spawnCmd = F2(
+	function (router, _p0) {
+		var _p1 = _p0;
+		return _elm_lang$core$Native_Scheduler.spawn(
+			A2(
+				_elm_lang$core$Task$andThen,
+				_elm_lang$core$Platform$sendToApp(router),
+				_p1._0));
+	});
+var _elm_lang$core$Task$fail = _elm_lang$core$Native_Scheduler.fail;
+var _elm_lang$core$Task$mapError = F2(
+	function (convert, task) {
+		return A2(
+			_elm_lang$core$Task$onError,
+			function (_p2) {
+				return _elm_lang$core$Task$fail(
+					convert(_p2));
+			},
+			task);
+	});
+var _elm_lang$core$Task$succeed = _elm_lang$core$Native_Scheduler.succeed;
+var _elm_lang$core$Task$map = F2(
+	function (func, taskA) {
+		return A2(
+			_elm_lang$core$Task$andThen,
+			function (a) {
+				return _elm_lang$core$Task$succeed(
+					func(a));
+			},
+			taskA);
+	});
+var _elm_lang$core$Task$map2 = F3(
+	function (func, taskA, taskB) {
+		return A2(
+			_elm_lang$core$Task$andThen,
+			function (a) {
+				return A2(
+					_elm_lang$core$Task$andThen,
+					function (b) {
+						return _elm_lang$core$Task$succeed(
+							A2(func, a, b));
+					},
+					taskB);
+			},
+			taskA);
+	});
+var _elm_lang$core$Task$map3 = F4(
+	function (func, taskA, taskB, taskC) {
+		return A2(
+			_elm_lang$core$Task$andThen,
+			function (a) {
+				return A2(
+					_elm_lang$core$Task$andThen,
+					function (b) {
+						return A2(
+							_elm_lang$core$Task$andThen,
+							function (c) {
+								return _elm_lang$core$Task$succeed(
+									A3(func, a, b, c));
+							},
+							taskC);
+					},
+					taskB);
+			},
+			taskA);
+	});
+var _elm_lang$core$Task$map4 = F5(
+	function (func, taskA, taskB, taskC, taskD) {
+		return A2(
+			_elm_lang$core$Task$andThen,
+			function (a) {
+				return A2(
+					_elm_lang$core$Task$andThen,
+					function (b) {
+						return A2(
+							_elm_lang$core$Task$andThen,
+							function (c) {
+								return A2(
+									_elm_lang$core$Task$andThen,
+									function (d) {
+										return _elm_lang$core$Task$succeed(
+											A4(func, a, b, c, d));
+									},
+									taskD);
+							},
+							taskC);
+					},
+					taskB);
+			},
+			taskA);
+	});
+var _elm_lang$core$Task$map5 = F6(
+	function (func, taskA, taskB, taskC, taskD, taskE) {
+		return A2(
+			_elm_lang$core$Task$andThen,
+			function (a) {
+				return A2(
+					_elm_lang$core$Task$andThen,
+					function (b) {
+						return A2(
+							_elm_lang$core$Task$andThen,
+							function (c) {
+								return A2(
+									_elm_lang$core$Task$andThen,
+									function (d) {
+										return A2(
+											_elm_lang$core$Task$andThen,
+											function (e) {
+												return _elm_lang$core$Task$succeed(
+													A5(func, a, b, c, d, e));
+											},
+											taskE);
+									},
+									taskD);
+							},
+							taskC);
+					},
+					taskB);
+			},
+			taskA);
+	});
+var _elm_lang$core$Task$sequence = function (tasks) {
+	var _p3 = tasks;
+	if (_p3.ctor === '[]') {
+		return _elm_lang$core$Task$succeed(
+			{ctor: '[]'});
+	} else {
+		return A3(
+			_elm_lang$core$Task$map2,
+			F2(
+				function (x, y) {
+					return {ctor: '::', _0: x, _1: y};
+				}),
+			_p3._0,
+			_elm_lang$core$Task$sequence(_p3._1));
+	}
+};
+var _elm_lang$core$Task$onEffects = F3(
+	function (router, commands, state) {
+		return A2(
+			_elm_lang$core$Task$map,
+			function (_p4) {
+				return {ctor: '_Tuple0'};
+			},
+			_elm_lang$core$Task$sequence(
+				A2(
+					_elm_lang$core$List$map,
+					_elm_lang$core$Task$spawnCmd(router),
+					commands)));
+	});
+var _elm_lang$core$Task$init = _elm_lang$core$Task$succeed(
+	{ctor: '_Tuple0'});
+var _elm_lang$core$Task$onSelfMsg = F3(
+	function (_p7, _p6, _p5) {
+		return _elm_lang$core$Task$succeed(
+			{ctor: '_Tuple0'});
+	});
+var _elm_lang$core$Task$command = _elm_lang$core$Native_Platform.leaf('Task');
+var _elm_lang$core$Task$Perform = function (a) {
+	return {ctor: 'Perform', _0: a};
+};
+var _elm_lang$core$Task$perform = F2(
+	function (toMessage, task) {
+		return _elm_lang$core$Task$command(
+			_elm_lang$core$Task$Perform(
+				A2(_elm_lang$core$Task$map, toMessage, task)));
+	});
+var _elm_lang$core$Task$attempt = F2(
+	function (resultToMessage, task) {
+		return _elm_lang$core$Task$command(
+			_elm_lang$core$Task$Perform(
+				A2(
+					_elm_lang$core$Task$onError,
+					function (_p8) {
+						return _elm_lang$core$Task$succeed(
+							resultToMessage(
+								_elm_lang$core$Result$Err(_p8)));
+					},
+					A2(
+						_elm_lang$core$Task$andThen,
+						function (_p9) {
+							return _elm_lang$core$Task$succeed(
+								resultToMessage(
+									_elm_lang$core$Result$Ok(_p9)));
+						},
+						task))));
+	});
+var _elm_lang$core$Task$cmdMap = F2(
+	function (tagger, _p10) {
+		var _p11 = _p10;
+		return _elm_lang$core$Task$Perform(
+			A2(_elm_lang$core$Task$map, tagger, _p11._0));
+	});
+_elm_lang$core$Native_Platform.effectManagers['Task'] = {pkg: 'elm-lang/core', init: _elm_lang$core$Task$init, onEffects: _elm_lang$core$Task$onEffects, onSelfMsg: _elm_lang$core$Task$onSelfMsg, tag: 'cmd', cmdMap: _elm_lang$core$Task$cmdMap};
+
 //import Maybe, Native.Array, Native.List, Native.Utils, Result //
 
 var _elm_lang$core$Native_Json = function() {
@@ -6563,6 +6760,215 @@ var _elm_lang$core$Set$partition = F2(
 			_1: _elm_lang$core$Set$Set_elm_builtin(p2)
 		};
 	});
+
+var _elm_lang$dom$Native_Dom = function() {
+
+var fakeNode = {
+	addEventListener: function() {},
+	removeEventListener: function() {}
+};
+
+var onDocument = on(typeof document !== 'undefined' ? document : fakeNode);
+var onWindow = on(typeof window !== 'undefined' ? window : fakeNode);
+
+function on(node)
+{
+	return function(eventName, decoder, toTask)
+	{
+		return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+
+			function performTask(event)
+			{
+				var result = A2(_elm_lang$core$Json_Decode$decodeValue, decoder, event);
+				if (result.ctor === 'Ok')
+				{
+					_elm_lang$core$Native_Scheduler.rawSpawn(toTask(result._0));
+				}
+			}
+
+			node.addEventListener(eventName, performTask);
+
+			return function()
+			{
+				node.removeEventListener(eventName, performTask);
+			};
+		});
+	};
+}
+
+var rAF = typeof requestAnimationFrame !== 'undefined'
+	? requestAnimationFrame
+	: function(callback) { callback(); };
+
+function withNode(id, doStuff)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		rAF(function()
+		{
+			var node = document.getElementById(id);
+			if (node === null)
+			{
+				callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'NotFound', _0: id }));
+				return;
+			}
+			callback(_elm_lang$core$Native_Scheduler.succeed(doStuff(node)));
+		});
+	});
+}
+
+
+// FOCUS
+
+function focus(id)
+{
+	return withNode(id, function(node) {
+		node.focus();
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function blur(id)
+{
+	return withNode(id, function(node) {
+		node.blur();
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+
+// SCROLLING
+
+function getScrollTop(id)
+{
+	return withNode(id, function(node) {
+		return node.scrollTop;
+	});
+}
+
+function setScrollTop(id, desiredScrollTop)
+{
+	return withNode(id, function(node) {
+		node.scrollTop = desiredScrollTop;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function toBottom(id)
+{
+	return withNode(id, function(node) {
+		node.scrollTop = node.scrollHeight;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function getScrollLeft(id)
+{
+	return withNode(id, function(node) {
+		return node.scrollLeft;
+	});
+}
+
+function setScrollLeft(id, desiredScrollLeft)
+{
+	return withNode(id, function(node) {
+		node.scrollLeft = desiredScrollLeft;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function toRight(id)
+{
+	return withNode(id, function(node) {
+		node.scrollLeft = node.scrollWidth;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+
+// SIZE
+
+function width(options, id)
+{
+	return withNode(id, function(node) {
+		switch (options.ctor)
+		{
+			case 'Content':
+				return node.scrollWidth;
+			case 'VisibleContent':
+				return node.clientWidth;
+			case 'VisibleContentWithBorders':
+				return node.offsetWidth;
+			case 'VisibleContentWithBordersAndMargins':
+				var rect = node.getBoundingClientRect();
+				return rect.right - rect.left;
+		}
+	});
+}
+
+function height(options, id)
+{
+	return withNode(id, function(node) {
+		switch (options.ctor)
+		{
+			case 'Content':
+				return node.scrollHeight;
+			case 'VisibleContent':
+				return node.clientHeight;
+			case 'VisibleContentWithBorders':
+				return node.offsetHeight;
+			case 'VisibleContentWithBordersAndMargins':
+				var rect = node.getBoundingClientRect();
+				return rect.bottom - rect.top;
+		}
+	});
+}
+
+return {
+	onDocument: F3(onDocument),
+	onWindow: F3(onWindow),
+
+	focus: focus,
+	blur: blur,
+
+	getScrollTop: getScrollTop,
+	setScrollTop: F2(setScrollTop),
+	getScrollLeft: getScrollLeft,
+	setScrollLeft: F2(setScrollLeft),
+	toBottom: toBottom,
+	toRight: toRight,
+
+	height: F2(height),
+	width: F2(width)
+};
+
+}();
+
+var _elm_lang$dom$Dom$blur = _elm_lang$dom$Native_Dom.blur;
+var _elm_lang$dom$Dom$focus = _elm_lang$dom$Native_Dom.focus;
+var _elm_lang$dom$Dom$NotFound = function (a) {
+	return {ctor: 'NotFound', _0: a};
+};
+
+var _elm_lang$dom$Dom_Size$width = _elm_lang$dom$Native_Dom.width;
+var _elm_lang$dom$Dom_Size$height = _elm_lang$dom$Native_Dom.height;
+var _elm_lang$dom$Dom_Size$VisibleContentWithBordersAndMargins = {ctor: 'VisibleContentWithBordersAndMargins'};
+var _elm_lang$dom$Dom_Size$VisibleContentWithBorders = {ctor: 'VisibleContentWithBorders'};
+var _elm_lang$dom$Dom_Size$VisibleContent = {ctor: 'VisibleContent'};
+var _elm_lang$dom$Dom_Size$Content = {ctor: 'Content'};
+
+var _elm_lang$dom$Dom_Scroll$toX = _elm_lang$dom$Native_Dom.setScrollLeft;
+var _elm_lang$dom$Dom_Scroll$x = _elm_lang$dom$Native_Dom.getScrollLeft;
+var _elm_lang$dom$Dom_Scroll$toRight = _elm_lang$dom$Native_Dom.toRight;
+var _elm_lang$dom$Dom_Scroll$toLeft = function (id) {
+	return A2(_elm_lang$dom$Dom_Scroll$toX, id, 0);
+};
+var _elm_lang$dom$Dom_Scroll$toY = _elm_lang$dom$Native_Dom.setScrollTop;
+var _elm_lang$dom$Dom_Scroll$y = _elm_lang$dom$Native_Dom.getScrollTop;
+var _elm_lang$dom$Dom_Scroll$toBottom = _elm_lang$dom$Native_Dom.toBottom;
+var _elm_lang$dom$Dom_Scroll$toTop = function (id) {
+	return A2(_elm_lang$dom$Dom_Scroll$toY, id, 0);
+};
 
 var _elm_lang$virtual_dom$VirtualDom_Debug$wrap;
 var _elm_lang$virtual_dom$VirtualDom_Debug$wrapWithFlags;
@@ -9519,6 +9925,7 @@ var _user$project$Types$HavannahGame = function (a) {
 		};
 	};
 };
+var _user$project$Types$NoOp = {ctor: 'NoOp'};
 var _user$project$Types$UnhoverCell = {ctor: 'UnhoverCell'};
 var _user$project$Types$HoverCell = function (a) {
 	return {ctor: 'HoverCell', _0: a};
@@ -9863,13 +10270,19 @@ var _user$project$State$update = F2(
 		var _p19 = msg;
 		switch (_p19.ctor) {
 			case 'PlaceCell':
-				var _p20 = _p19._0;
+				var _p21 = _p19._0;
 				var nextTurn = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? _user$project$Types$Player2 : _user$project$Types$Player1;
-				var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(_p20);
+				var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(_p21);
 				var newP1Moves = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? A2(_elm_lang$core$Set$insert, hash, model.p1Moves) : model.p1Moves;
 				var newP2Moves = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) ? A2(_elm_lang$core$Set$insert, hash, model.p2Moves) : model.p2Moves;
-				var newMoves = _elm_lang$core$List$reverse(
-					{ctor: '::', _0: hash, _1: model.moves});
+				var newMoves = A2(
+					_elm_lang$core$Basics_ops['++'],
+					model.moves,
+					{
+						ctor: '::',
+						_0: hash,
+						_1: {ctor: '[]'}
+					});
 				var draw = _user$project$State$isDraw(
 					_elm_lang$core$Native_Utils.update(
 						model,
@@ -9883,7 +10296,7 @@ var _user$project$State$update = F2(
 							_0: hash,
 							_1: {ctor: '[]'}
 						}),
-					model.p1Connections) : A3(_user$project$State$updateConnections, _p20, model.board, model.p1Connections));
+					model.p1Connections) : A3(_user$project$State$updateConnections, _p21, model.board, model.p1Connections));
 				var newP2Connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? model.p2Connections : (_elm_lang$core$Dict$isEmpty(model.p2Connections) ? A3(
 					_elm_lang$core$Dict$insert,
 					hash,
@@ -9893,7 +10306,7 @@ var _user$project$State$update = F2(
 							_0: hash,
 							_1: {ctor: '[]'}
 						}),
-					model.p2Connections) : A3(_user$project$State$updateConnections, _p20, model.board, model.p2Connections));
+					model.p2Connections) : A3(_user$project$State$updateConnections, _p21, model.board, model.p2Connections));
 				var win = _user$project$State$isWin(
 					_elm_lang$core$Native_Utils.update(
 						model,
@@ -9904,17 +10317,22 @@ var _user$project$State$update = F2(
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
 						{p1Moves: newP1Moves, p2Moves: newP2Moves, turn: nextTurn, moves: newMoves, p1Connections: newP1Connections, p2Connections: newP2Connections, gameState: newState}),
-					_1: _elm_lang$core$Platform_Cmd$none
+					_1: A2(
+						_elm_lang$core$Task$attempt,
+						function (_p20) {
+							return _user$project$Types$NoOp;
+						},
+						_elm_lang$dom$Dom_Scroll$toBottom('moves-list'))
 				};
 			case 'HoverCell':
-				var _p21 = _p19._0;
-				var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(_p21);
-				var newHoverCell = A2(_elm_lang$core$List$member, hash, model.moves) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(_p21);
+				var _p22 = _p19._0;
+				var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(_p22);
+				var newHoverCell = A2(_elm_lang$core$List$member, hash, model.moves) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(_p22);
 				var newModel = _elm_lang$core$Native_Utils.update(
 					model,
 					{hoverCell: newHoverCell});
 				return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
-			default:
+			case 'UnhoverCell':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -9922,6 +10340,8 @@ var _user$project$State$update = F2(
 						{hoverCell: _elm_lang$core$Maybe$Nothing}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
+			default:
+				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 		}
 	});
 var _user$project$State$orientationLayoutFlat = {
@@ -9944,9 +10364,9 @@ var _user$project$State$orientationLayoutFlat = {
 var _user$project$State$initModel = function () {
 	var size = _user$project$Types$Ten;
 	var board = _user$project$State$makeGameBoard(size);
-	var _p22 = A2(_user$project$State$findCornersAndEdges, board, size);
-	var corners = _p22._0;
-	var edges = _p22._1;
+	var _p23 = A2(_user$project$State$findCornersAndEdges, board, size);
+	var corners = _p23._0;
+	var edges = _p23._1;
 	var layout = {
 		orientation: _user$project$State$orientationLayoutFlat,
 		size: {ctor: '_Tuple2', _0: 20.0, _1: 20.0},
@@ -10332,41 +10752,233 @@ var _user$project$View$hoveredText = function (model) {
 	}
 };
 var _user$project$View$movesList = function (model) {
+	var bodyContent = F2(
+		function (moveNum, _p17) {
+			var _p18 = _p17;
+			return A2(
+				_elm_lang$html$Html$div,
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$class('row'),
+					_1: {ctor: '[]'}
+				},
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$div,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$class('small-4 columns move'),
+							_1: {ctor: '[]'}
+						},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text(
+								A3(
+									_elm_lang$core$Basics$flip,
+									F2(
+										function (x, y) {
+											return A2(_elm_lang$core$Basics_ops['++'], x, y);
+										}),
+									'.',
+									_elm_lang$core$Basics$toString(moveNum + 1))),
+							_1: {ctor: '[]'}
+						}),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$div,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$class('small-4 columns move text-left'),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text(_p18._0),
+								_1: {ctor: '[]'}
+							}),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$div,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$class('small-4 columns move text-center'),
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text(_p18._1),
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
+						}
+					}
+				});
+		});
+	var pairMoves = function (moveList) {
+		var _p19 = moveList;
+		if (_p19.ctor === '::') {
+			if (_p19._1.ctor === '::') {
+				return {
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: _p19._0, _1: _p19._1._0},
+					_1: pairMoves(_p19._1._1)
+				};
+			} else {
+				var _p20 = _p19._0;
+				return _elm_lang$core$Native_Utils.eq(model.gameState, _user$project$Types$P1Wins) ? {
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: _p20, _1: '1-0'},
+					_1: {ctor: '[]'}
+				} : {
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: _p20, _1: ''},
+					_1: {ctor: '[]'}
+				};
+			}
+		} else {
+			return _elm_lang$core$Native_Utils.eq(model.gameState, _user$project$Types$P2Wins) ? {
+				ctor: '::',
+				_0: {ctor: '_Tuple2', _0: '0-1', _1: ''},
+				_1: {ctor: '[]'}
+			} : {ctor: '[]'};
+		}
+	};
+	var cartestianMoves = A2(
+		_elm_lang$core$List$map,
+		function (_p21) {
+			return _user$project$View$cartesianString(
+				A2(_user$project$View$cartesianHex, model.boardSize, _p21));
+		},
+		model.moves);
+	var bodyContents = A2(
+		_elm_lang$core$List$indexedMap,
+		bodyContent,
+		pairMoves(cartestianMoves));
 	var body = A2(
 		_elm_lang$html$Html$tbody,
 		{ctor: '[]'},
-		{
-			ctor: '::',
-			_0: A2(
-				_elm_lang$html$Html$tr,
-				{ctor: '[]'},
-				{ctor: '[]'}),
-			_1: {ctor: '[]'}
-		});
-	var header = A2(
-		_elm_lang$html$Html$thead,
-		{ctor: '[]'},
-		{
-			ctor: '::',
-			_0: A2(
-				_elm_lang$html$Html$tr,
-				{ctor: '[]'},
-				{ctor: '[]'}),
-			_1: {ctor: '[]'}
-		});
+		bodyContents);
+	return {
+		ctor: '::',
+		_0: A2(
+			_elm_lang$html$Html$div,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$style(
+					{
+						ctor: '::',
+						_0: {ctor: '_Tuple2', _0: 'max-height', _1: '350px'},
+						_1: {
+							ctor: '::',
+							_0: {ctor: '_Tuple2', _0: 'overflow-y', _1: 'auto'},
+							_1: {
+								ctor: '::',
+								_0: {ctor: '_Tuple2', _0: 'overflow-x', _1: 'hidden'},
+								_1: {
+									ctor: '::',
+									_0: {ctor: '_Tuple2', _0: 'font-family', _1: '\"Courier New\", Courier, monospace'},
+									_1: {
+										ctor: '::',
+										_0: {ctor: '_Tuple2', _0: 'margin-left', _1: '1rem'},
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						}
+					}),
+				_1: {
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$id('moves-list'),
+					_1: {
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$class('row'),
+						_1: {ctor: '[]'}
+					}
+				}
+			},
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$h5,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$class('moves-header text-center'),
+							_1: {ctor: '[]'}
+						},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('Moves'),
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				},
+				bodyContents)),
+		_1: {ctor: '[]'}
+	};
+};
+var _user$project$View$playerSummaries = function (model) {
 	return A2(
-		_elm_lang$html$Html$table,
+		_elm_lang$html$Html$div,
 		{
 			ctor: '::',
-			_0: _elm_lang$html$Html_Attributes$class('hover'),
+			_0: _elm_lang$html$Html_Attributes$class('panel moves-header player-summaries'),
 			_1: {ctor: '[]'}
 		},
 		{
 			ctor: '::',
-			_0: header,
+			_0: A2(
+				_elm_lang$html$Html$span,
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$class('label float-left'),
+					_1: {
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$style(
+							{
+								ctor: '::',
+								_0: {ctor: '_Tuple2', _0: 'background', _1: model.p1Color},
+								_1: {
+									ctor: '::',
+									_0: {ctor: '_Tuple2', _0: 'margin-left', _1: '7rem'},
+									_1: {ctor: '[]'}
+								}
+							}),
+						_1: {ctor: '[]'}
+					}
+				},
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html$text('Player 1'),
+					_1: {ctor: '[]'}
+				}),
 			_1: {
 				ctor: '::',
-				_0: body,
+				_0: A2(
+					_elm_lang$html$Html$span,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$class('label float-right'),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$style(
+								{
+									ctor: '::',
+									_0: {ctor: '_Tuple2', _0: 'background', _1: model.p2Color},
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
+						}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Player 2'),
+						_1: {ctor: '[]'}
+					}),
 				_1: {ctor: '[]'}
 			}
 		});
@@ -10412,30 +11024,14 @@ var _user$project$View$rootView = function (model) {
 						_0: _elm_lang$html$Html_Attributes$class('large-4 columns'),
 						_1: {ctor: '[]'}
 					},
-					{
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$p,
-							{ctor: '[]'},
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html$text(
-									_user$project$View$gameStateText(model)),
-								_1: {ctor: '[]'}
-							}),
-						_1: {
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						{
 							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$hr,
-								{ctor: '[]'},
-								{ctor: '[]'}),
-							_1: {
-								ctor: '::',
-								_0: _user$project$View$movesList(model),
-								_1: {ctor: '[]'}
-							}
-						}
-					}),
+							_0: _user$project$View$playerSummaries(model),
+							_1: {ctor: '[]'}
+						},
+						_user$project$View$movesList(model))),
 				_1: {ctor: '[]'}
 			}
 		});

@@ -29,24 +29,30 @@ rootView model =
                     ((havannahBoard model) ++ (coordinatesText model))
           ]
     , div [ class "large-4 columns" ]
-          [ Html.p [] [ Html.text (gameStateText model) ]
-          , Html.hr [] []
-          , movesList model
-          ]
+          ([ playerSummaries model
+           ] 
+           ++ 
+           (movesList model))
     ]
+
+playerSummaries model =
+  div [ class "panel moves-header player-summaries" ]
+      [ Html.span 
+          [ class "label float-left" 
+          , style [ ("background", model.p1Color) 
+                  , ("margin-left", "7rem")
+                  ]
+          ]
+          [ Html.text "Player 1" ]
+      , Html.span 
+          [ class "label float-right" 
+          , style [ ("background", model.p2Color) ]
+          ]
+          [ Html.text "Player 2" ]
+      ]
 
 movesList model =
   let
-    header =
-      Html.thead 
-        []
-        [ Html.tr []
-                  [ Html.th [] []
-                  , Html.th [] []
-                  , Html.th [] []
-                  ]
-        ]
-
     body = 
       Html.tbody 
       [ ]
@@ -80,15 +86,33 @@ movesList model =
             []
 
     bodyContent moveNum (p1Move, p2Move) =
-      Html.tr [] 
-        [ Html.td [] [ Html.text (toString <| moveNum + 1) ]
-        , Html.td [ class "text-center" ] [ Html.text p1Move ]
-        , Html.td [ class "text-center" ] [ Html.text p2Move ]
-        ]
+      div [ class "row" ] 
+          [ div 
+              [ class "small-4 columns move" ]
+              [ Html.text ( (flip (++)) "." <| toString <| moveNum + 1) ]
+          , div
+              [ class "small-4 columns move text-left" ]
+              [ Html.text p1Move ]
+          , div
+              [ class "small-4 columns move text-center" ]
+              [ Html.text p2Move ]
+          ]
                 
   in
-    div [ class "row table-y-scroll" ]
-        [ Html.table [] [ body ] ]
+    [ div [ style [ ("max-height", "350px")
+                  , ("overflow-y", "auto")
+                  , ("overflow-x", "hidden")
+                  , ("font-family", "\"Courier New\", Courier, monospace")
+                  , ("margin-left", "1rem")
+                  ]
+          , id "moves-list"
+          , class "row"
+          ]
+          ([ Html.h5 [ class "moves-header text-center" ] [ Html.text "Moves" ] ]
+           ++
+           bodyContents
+          )
+    ]
 
 hoveredText model =
   case model.hoverCell of
