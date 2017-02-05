@@ -71,7 +71,10 @@ movesList model =
     pairMoves moveList =
       case moveList of 
         p1Move :: p2Move :: rest ->
-          (p1Move, p2Move) :: pairMoves rest
+          if p1Move == p2Move then
+            (p1Move, "swap") :: pairMoves rest
+          else
+            (p1Move, p2Move) :: pairMoves rest
 
         p1Move :: [] ->
           if model.gameState == P1Wins then
@@ -108,7 +111,7 @@ movesList model =
           , id "moves-list"
           , class "row"
           ]
-          ([ Html.h5 [ class "moves-header text-center" ] [ Html.text "Moves" ] ]
+          ([ Html.h5 [ class "moves-header" ] [ Html.text "Moves" ] ]
            ++
            bodyContents
           )
@@ -167,7 +170,9 @@ gData model hex =
     isHover = model.hoverCell == Just hex
 
     fillColor =
-      if Set.member hash model.p1Moves then
+      if List.length model.moves == 1 && isHover then
+         model.p2Color
+      else if Set.member hash model.p1Moves then
         model.p1Color
       else if Set.member hash model.p2Moves then
         model.p2Color
@@ -176,7 +181,6 @@ gData model hex =
       else if model.turn == Player2 && isHover then
         model.p2Color
       else
-        --"Gold"
         "Aliceblue"
 
     fillOpacity =
@@ -193,7 +197,11 @@ gData model hex =
         qualifier =
           case model.gameState of
             Started ->
-              if isMove then "taken" else "available"
+              if List.length model.moves == 1 then
+                 "available"
+              else if isMove then 
+                "taken" 
+              else "available"
 
             _ ->
               "no-game-play"

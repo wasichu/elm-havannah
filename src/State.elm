@@ -46,7 +46,10 @@ update msg model =
 
           newP1Moves =
             if model.turn == Player1 then
-               Set.insert hash model.p1Moves
+              Set.insert hash model.p1Moves
+            else if model.turn == Player2 &&
+                    Set.member hash model.p1Moves then
+              Set.empty
             else
               model.p1Moves
   
@@ -56,14 +59,17 @@ update msg model =
             else
               model.p2Moves
 
-          newMoves = model.moves ++ [hash]
+          newMoves = 
+            model.moves ++ [hash]
 
           nextTurn = if model.turn == Player1 then Player2 else Player1
 
           -- TODO: Add move to the right disjoint set dict and then
           --       test for a win or draw
           newP1Connections =
-            if model.turn == Player2 then
+            if List.member hash model.moves then
+               Dict.empty
+            else if model.turn == Player2 then
                model.p1Connections
             else if Dict.isEmpty model.p1Connections then
               Dict.insert hash (Set.fromList [hash]) model.p1Connections
@@ -113,7 +119,10 @@ update msg model =
           hash = HexMap.hashHex hex
 
           newHoverCell =
-            if List.member hash model.moves then
+            -- For the swap rule, allow the first placed
+            -- stone to be hovered over
+            if List.length model.moves /= 1 &&
+               List.member hash model.moves then
                Nothing
             else
               Just hex

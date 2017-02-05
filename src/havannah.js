@@ -10273,7 +10273,7 @@ var _user$project$State$update = F2(
 				var _p21 = _p19._0;
 				var nextTurn = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? _user$project$Types$Player2 : _user$project$Types$Player1;
 				var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(_p21);
-				var newP1Moves = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? A2(_elm_lang$core$Set$insert, hash, model.p1Moves) : model.p1Moves;
+				var newP1Moves = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? A2(_elm_lang$core$Set$insert, hash, model.p1Moves) : ((_elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) && A2(_elm_lang$core$Set$member, hash, model.p1Moves)) ? _elm_lang$core$Set$empty : model.p1Moves);
 				var newP2Moves = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) ? A2(_elm_lang$core$Set$insert, hash, model.p2Moves) : model.p2Moves;
 				var newMoves = A2(
 					_elm_lang$core$Basics_ops['++'],
@@ -10287,7 +10287,7 @@ var _user$project$State$update = F2(
 					_elm_lang$core$Native_Utils.update(
 						model,
 						{moves: newMoves}));
-				var newP1Connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) ? model.p1Connections : (_elm_lang$core$Dict$isEmpty(model.p1Connections) ? A3(
+				var newP1Connections = A2(_elm_lang$core$List$member, hash, model.moves) ? _elm_lang$core$Dict$empty : (_elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) ? model.p1Connections : (_elm_lang$core$Dict$isEmpty(model.p1Connections) ? A3(
 					_elm_lang$core$Dict$insert,
 					hash,
 					_elm_lang$core$Set$fromList(
@@ -10296,7 +10296,7 @@ var _user$project$State$update = F2(
 							_0: hash,
 							_1: {ctor: '[]'}
 						}),
-					model.p1Connections) : A3(_user$project$State$updateConnections, _p21, model.board, model.p1Connections));
+					model.p1Connections) : A3(_user$project$State$updateConnections, _p21, model.board, model.p1Connections)));
 				var newP2Connections = _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) ? model.p2Connections : (_elm_lang$core$Dict$isEmpty(model.p2Connections) ? A3(
 					_elm_lang$core$Dict$insert,
 					hash,
@@ -10327,7 +10327,9 @@ var _user$project$State$update = F2(
 			case 'HoverCell':
 				var _p22 = _p19._0;
 				var hash = _Voronchuk$hexagons$Hexagons_Map$hashHex(_p22);
-				var newHoverCell = A2(_elm_lang$core$List$member, hash, model.moves) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(_p22);
+				var newHoverCell = ((!_elm_lang$core$Native_Utils.eq(
+					_elm_lang$core$List$length(model.moves),
+					1)) && A2(_elm_lang$core$List$member, hash, model.moves)) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(_p22);
 				var newModel = _elm_lang$core$Native_Utils.update(
 					model,
 					{hoverCell: newHoverCell});
@@ -10672,13 +10674,17 @@ var _user$project$View$gData = F2(
 		var _p13 = A2(_user$project$View$cartesianHex, model.boardSize, hash);
 		var letter = _p13._0;
 		var number = _p13._1;
-		var fillColor = A2(_elm_lang$core$Set$member, hash, model.p1Moves) ? model.p1Color : (A2(_elm_lang$core$Set$member, hash, model.p2Moves) ? model.p2Color : ((_elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) && isHover) ? model.p1Color : ((_elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) && isHover) ? model.p2Color : 'Aliceblue')));
+		var fillColor = (_elm_lang$core$Native_Utils.eq(
+			_elm_lang$core$List$length(model.moves),
+			1) && isHover) ? model.p2Color : (A2(_elm_lang$core$Set$member, hash, model.p1Moves) ? model.p1Color : (A2(_elm_lang$core$Set$member, hash, model.p2Moves) ? model.p2Color : ((_elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player1) && isHover) ? model.p1Color : ((_elm_lang$core$Native_Utils.eq(model.turn, _user$project$Types$Player2) && isHover) ? model.p2Color : 'Aliceblue'))));
 		var isMove = A2(_elm_lang$core$Set$member, hash, model.p1Moves) || A2(_elm_lang$core$Set$member, hash, model.p2Moves);
 		var gClass = function () {
 			var qualifier = function () {
 				var _p14 = model.gameState;
 				if (_p14.ctor === 'Started') {
-					return isMove ? 'taken' : 'available';
+					return _elm_lang$core$Native_Utils.eq(
+						_elm_lang$core$List$length(model.moves),
+						1) ? 'available' : (isMove ? 'taken' : 'available');
 				} else {
 					return 'no-game-play';
 				}
@@ -10821,20 +10827,27 @@ var _user$project$View$movesList = function (model) {
 		var _p19 = moveList;
 		if (_p19.ctor === '::') {
 			if (_p19._1.ctor === '::') {
-				return {
+				var _p22 = _p19._1._1;
+				var _p21 = _p19._1._0;
+				var _p20 = _p19._0;
+				return _elm_lang$core$Native_Utils.eq(_p20, _p21) ? {
 					ctor: '::',
-					_0: {ctor: '_Tuple2', _0: _p19._0, _1: _p19._1._0},
-					_1: pairMoves(_p19._1._1)
+					_0: {ctor: '_Tuple2', _0: _p20, _1: 'swap'},
+					_1: pairMoves(_p22)
+				} : {
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: _p20, _1: _p21},
+					_1: pairMoves(_p22)
 				};
 			} else {
-				var _p20 = _p19._0;
+				var _p23 = _p19._0;
 				return _elm_lang$core$Native_Utils.eq(model.gameState, _user$project$Types$P1Wins) ? {
 					ctor: '::',
-					_0: {ctor: '_Tuple2', _0: _p20, _1: '1-0'},
+					_0: {ctor: '_Tuple2', _0: _p23, _1: '1-0'},
 					_1: {ctor: '[]'}
 				} : {
 					ctor: '::',
-					_0: {ctor: '_Tuple2', _0: _p20, _1: ''},
+					_0: {ctor: '_Tuple2', _0: _p23, _1: ''},
 					_1: {ctor: '[]'}
 				};
 			}
@@ -10848,9 +10861,9 @@ var _user$project$View$movesList = function (model) {
 	};
 	var cartestianMoves = A2(
 		_elm_lang$core$List$map,
-		function (_p21) {
+		function (_p24) {
 			return _user$project$View$cartesianString(
-				A2(_user$project$View$cartesianHex, model.boardSize, _p21));
+				A2(_user$project$View$cartesianHex, model.boardSize, _p24));
 		},
 		model.moves);
 	var bodyContents = A2(
@@ -10907,7 +10920,7 @@ var _user$project$View$movesList = function (model) {
 						_elm_lang$html$Html$h5,
 						{
 							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$class('moves-header text-center'),
+							_0: _elm_lang$html$Html_Attributes$class('moves-header'),
 							_1: {ctor: '[]'}
 						},
 						{
