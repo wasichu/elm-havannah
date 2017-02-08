@@ -10647,7 +10647,7 @@ var _user$project$View$coordinatesText = function (model) {
 };
 var _user$project$View$gData = F2(
 	function (model, hex) {
-		var clickHandlers = (!_elm_lang$core$Native_Utils.eq(model.gameState, _user$project$Types$Started)) ? {ctor: '[]'} : {
+		var canMoveHandlers = {
 			ctor: '::',
 			_0: _elm_lang$svg$Svg_Events$onClick(
 				_user$project$Types$PlaceCell(hex)),
@@ -10691,6 +10691,9 @@ var _user$project$View$gData = F2(
 			}();
 			return A2(_elm_lang$core$Basics_ops['++'], 'hex-cell-', qualifier);
 		}();
+		var clickHandlers = (!_elm_lang$core$Native_Utils.eq(model.gameState, _user$project$Types$Started)) ? {ctor: '[]'} : (isMove ? (_elm_lang$core$Native_Utils.eq(
+			_elm_lang$core$List$length(model.moves),
+			1) ? canMoveHandlers : {ctor: '[]'}) : canMoveHandlers);
 		return A2(
 			_elm_lang$svg$Svg$g,
 			A2(
@@ -10774,7 +10777,7 @@ var _user$project$View$movesList = function (model) {
 						_elm_lang$html$Html$div,
 						{
 							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$class('small-4 columns move'),
+							_0: _elm_lang$html$Html_Attributes$class('small-4 columns move text-left'),
 							_1: {ctor: '[]'}
 						},
 						{
@@ -10895,8 +10898,12 @@ var _user$project$View$movesList = function (model) {
 									_0: {ctor: '_Tuple2', _0: 'font-family', _1: '\"Courier New\", Courier, monospace'},
 									_1: {
 										ctor: '::',
-										_0: {ctor: '_Tuple2', _0: 'margin-left', _1: '1rem'},
-										_1: {ctor: '[]'}
+										_0: {ctor: '_Tuple2', _0: 'font-size', _1: '16px'},
+										_1: {
+											ctor: '::',
+											_0: {ctor: '_Tuple2', _0: 'margin-left', _1: '1rem'},
+											_1: {ctor: '[]'}
+										}
 									}
 								}
 							}

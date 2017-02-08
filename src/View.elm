@@ -91,7 +91,7 @@ movesList model =
     bodyContent moveNum (p1Move, p2Move) =
       div [ class "row" ] 
           [ div 
-              [ class "small-4 columns move" ]
+              [ class "small-4 columns move text-left" ]
               [ Html.text ( (flip (++)) "." <| toString <| moveNum + 1) ]
           , div
               [ class "small-4 columns move text-left" ]
@@ -106,6 +106,7 @@ movesList model =
                   , ("overflow-y", "auto")
                   , ("overflow-x", "hidden")
                   , ("font-family", "\"Courier New\", Courier, monospace")
+                  , ("font-size", "16px")
                   , ("margin-left", "1rem")
                   ]
           , id "moves-list"
@@ -208,15 +209,23 @@ gData model hex =
 
       in 
         "hex-cell-" ++ qualifier
+
+    canMoveHandlers =
+      [ onClick (PlaceCell hex)
+      , onMouseOver (HoverCell hex)
+      , onMouseOut UnhoverCell
+      ]
    
     clickHandlers = 
       if model.gameState /= Started then
-         []
-      else
-        [ onClick (PlaceCell hex)
-        , onMouseOver (HoverCell hex)
-        , onMouseOut UnhoverCell
-        ]
+        []
+      else if isMove then
+        if List.length model.moves == 1 then
+           canMoveHandlers
+        else
+          []
+      else 
+        canMoveHandlers
 
   in
     g ([ Sattr.class gClass
