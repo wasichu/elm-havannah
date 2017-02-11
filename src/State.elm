@@ -64,8 +64,6 @@ update msg model =
 
           nextTurn = if model.turn == Player1 then Player2 else Player1
 
-          -- TODO: Add move to the right disjoint set dict and then
-          --       test for a win or draw
           newP1Connections =
             if List.member hash model.moves then
                Dict.empty
